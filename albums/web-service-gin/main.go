@@ -4,72 +4,60 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"rest/data"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-sql-driver/mysql"
+	"rest/data"
 )
 
-func main() {
-	config := mysql.Config{
-		User:   os.Getenv("DBUSER"),
-		Passwd: os.Getenv("DBPASS"),
-		Net:    "tcp",
-		Addr:   "127.0.0.1:3306",
-		DBName: "recordings",
-	}
+type GinAppConfig struct{}
 
-	router := gin.Default()
-	router.GET("/", healthCheck)
-	router.GET("/albums", albums(config))
-	router.GET("/albums/artist/:name", albumByArtists(config))
-	router.GET("/albums/:id", albumById(config))
-
-	router.Run("localhost:8080")
-}
-
-func healthCheck(c *gin.Context) {
+func (ac *GinAppConfig) healthCheck(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, gin.H{"OK": true})
 }
 
-func albums(config mysql.Config) func(*gin.Context) {
-	return func(c *gin.Context) {
-		albums, err := data.Albums(config)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Printf("Albums found %v\n", albums)
-
-		c.IndentedJSON(http.StatusOK, albums)
+func (ac *GinAppConfig) albums(c *gin.Context) {
+	albums, err := data.Albums()
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	fmt.Printf("Albums found %v\n", albums)
+
+	c.IndentedJSON(http.StatusOK, albums)
 }
 
-func albumByArtists(config mysql.Config) func(*gin.Context) {
-	return func(c *gin.Context) {
-		name := c.Param("name")
+func (ac *GinAppConfig) albumByArtists(c *gin.Context) {
+	name := c.Param("name")
 
-		albums, err := data.AlbumByArists(config, name)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Printf("Albums found %v\n", albums)
-
-		c.IndentedJSON(http.StatusOK, albums)
+	albums, err := data.AlbumByArists(name)
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	fmt.Printf("Albums found %v\n", albums)
+
+	c.IndentedJSON(http.StatusOK, albums)
 }
 
-func albumById(config mysql.Config) func(*gin.Context) {
-	return func(c *gin.Context) {
-		id := c.Param("id")
+func (ac *GinAppConfig) albumById(c *gin.Context) {
+	id := c.Param("id")
 
-		album, err := data.AlbumByID(config, id)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		c.IndentedJSON(http.StatusOK, album)
+	album, err := data.AlbumByID(id)
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	c.IndentedJSON(http.StatusOK, album)
+}
+
+func main() {
+	var routes GinAppConfig
+
+	router := gin.Default()
+	router.GET("/", routes.healthCheck)
+	router.GET("/albums", routes.albums)
+	router.GET("/albums/artist/:name", routes.albumByArtists)
+	router.GET("/albums/:id", routes.albumById)
+
+	router.Run("localhost:8080")
 }

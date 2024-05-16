@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/go-sql-driver/mysql"
 )
@@ -15,10 +16,10 @@ type Album struct {
 	Price  float32 `json:"price"`
 }
 
-func Albums(config mysql.Config) ([]Album, error) {
+func Albums() ([]Album, error) {
 	var albums []Album
 
-	db := fetchDB(config)
+	db := fetchDB()
 
 	rows, err := db.Query("SELECT * FROM albums")
 	if err != nil {
@@ -44,10 +45,10 @@ func Albums(config mysql.Config) ([]Album, error) {
 	return albums, nil
 }
 
-func AlbumByArists(config mysql.Config, name string) ([]Album, error) {
+func AlbumByArists(name string) ([]Album, error) {
 	var albums []Album
 
-	db := fetchDB(config)
+	db := fetchDB()
 
 	rows, err := db.Query("SELECT * FROM albums WHERE artist = ?", name)
 	if err != nil {
@@ -73,18 +74,18 @@ func AlbumByArists(config mysql.Config, name string) ([]Album, error) {
 	return albums, nil
 }
 
-func AlbumByID(config mysql.Config, id string) (Album, error) {
+func AlbumByID(id string) (Album, error) {
 	var item Album
 
-	db := fetchDB(config)
+	db := fetchDB()
 
 	row := db.QueryRow("SELECT * FROM albums WHERE ID = ?", id)
 	if err := row.Scan(&item.ID, &item.Title, &item.Artist, &item.Price); err != nil {
 		if err == sql.ErrNoRows {
-			return item, fmt.Errorf("albumByID %d: no such album", id)
+			return item, fmt.Errorf("albumByID %s: no such album", id)
 		}
 
-		return item, fmt.Errorf("albumByID %d: %v", id, err)
+		return item, fmt.Errorf("albumByID %s: %v", id, err)
 	}
 
 	return item, nil
@@ -104,7 +105,16 @@ func AlbumByID(config mysql.Config, id string) (Album, error) {
 // 	return id, nil
 // }
 
-func fetchDB(config mysql.Config) *sql.DB {
+func fetchDB() *sql.DB {
+	config := mysql.Config{
+		User:                 os.Getenv("DBUSER"),
+		Passwd:               os.Getenv("DBPASS"),
+		Net:                  "tcp",
+		Addr:                 "127.0.0.1:33060",
+		DBName:               os.Getenv("DBDATABASE"),
+		AllowNativePasswords: true,
+	}
+
 	var err error
 	db, err := sql.Open("mysql", config.FormatDSN())
 	if err != nil {

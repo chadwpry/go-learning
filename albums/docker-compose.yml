@@ -1,18 +1,30 @@
 version: '3.8'
 
 services:
+  web:
+    image: web-service-gin
+    env_file:
+      .env
+    ports:
+      - "8080:8080"
+    networks:
+      - base-network
+
   db:
     image: mysql:latest
     restart: always
     env_file:
       .env
-    ports:
-      - "33060:3306"
+    networks:
+      - base-network
     volumes:
       - mysql_data:/var/lib/mysql
       - ./rest/data/sql/0001_create_tables.sql:/docker-entrypoint-initdb.d/0001_create_tables.sql
       - ./rest/data/sql/0010_insert_albums.sql:/docker-entrypoint-initdb.d/0010_insert_albums.sql
       # - ./db/my.cnf:/etc/mysql/my.cnf
+
+networks:
+  base-network:
 
 volumes:
   mysql_data:

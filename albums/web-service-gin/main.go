@@ -59,5 +59,5 @@ func main() {
 	router.GET("/albums/artist/:name", routes.albumByArtists)
 	router.GET("/albums/:id", routes.albumById)
 
-	router.Run("localhost:8080")
+	router.Run("0.0.0.0:8080")
 }

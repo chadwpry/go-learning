@@ -110,7 +110,7 @@ func fetchDB() *sql.DB {
 		User:                 os.Getenv("DBUSER"),
 		Passwd:               os.Getenv("DBPASS"),
 		Net:                  "tcp",
-		Addr:                 "127.0.0.1:33060",
+		Addr:                 fmt.Sprintf("%s:%s", os.Getenv("DBHOST"), os.Getenv("DBPORT")),
 		DBName:               os.Getenv("DBDATABASE"),
 		AllowNativePasswords: true,
 	}

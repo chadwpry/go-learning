@@ -4,9 +4,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -92,12 +94,23 @@ func (ac *GinAppConfig) create(c *gin.Context) {
 func main() {
 	var routes GinAppConfig
 
-	db, err := gorm.Open(postgres.Open(os.Getenv("DATABASE_URL")), &gorm.Config{})
-	if err != nil {
-		log.Fatalf("error opening database connection %v", err)
-	}
+	dsn := os.Getenv("DATABASE_URL")
 
-	routes.db = db
+	if strings.HasPrefix(dsn, "postgres") {
+		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		if err != nil {
+			log.Fatalf("error opening database connection %v", err)
+		}
+
+		routes.db = db
+	} else {
+		db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		if err != nil {
+			log.Fatalf("error opening database connection %v", err)
+		}
+
+		routes.db = db
+	}
 
 	router := gin.Default()
 	router.GET("/", routes.healthCheck)

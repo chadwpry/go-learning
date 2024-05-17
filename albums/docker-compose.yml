@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  db:
-    image: postgres
-    container_name: albums-db
+  postgres:
+    image: postgres:latest
+    container_name: albums-postgres
     env_file:
       .env
     logging:
@@ -15,16 +15,35 @@ services:
     restart: always
     volumes:
       - ./data/postgres_data:/var/lib/postgresql/data
-      - ./sql/0001_create_databases.sql:/docker-entrypoint-initdb.d/0001_create_databases.sql
-      - ./sql/0005_create_tables.sql:/docker-entrypoint-initdb.d/0005_create_tables.sql
-      - ./sql/0010_insert_albums.sql:/docker-entrypoint-initdb.d/0010_insert_albums.sql
+      - ./sql/postgres/0001_create_databases.sql:/docker-entrypoint-initdb.d/0001_create_databases.sql
+      - ./sql/postgres/0005_create_tables.sql:/docker-entrypoint-initdb.d/0005_create_tables.sql
+      - ./sql/postgres/0010_insert_albums.sql:/docker-entrypoint-initdb.d/0010_insert_albums.sql
+  mysql:
+    image: mysql:latest
+    container_name: albums-mysql
+    env_file:
+      .env
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    networks:
+      - base-network
+    restart: always
+    volumes:
+      - ./data/mysql_data:/var/lib/mysql
+      - ./sql/mysql/0001_create_tables.sql:/docker-entrypoint-initdb.d/0001_create_tables.sql
+      - ./sql/mysql/0010_insert_albums.sql:/docker-entrypoint-initdb.d/0010_insert_albums.sql
+      - ./conf/my.cnf:/etc/mysql/my.cnf
   web:
     build: .
     depends_on:
-      db:
+      postgres:
+        condition: service_started
+      mysql:
         condition: service_started
     deploy:
-      replicas: 5
+      replicas: 1
     env_file:
       .env
     logging:

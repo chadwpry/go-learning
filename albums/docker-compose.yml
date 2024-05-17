@@ -13,21 +13,22 @@ services:
       - base-network
 
   db:
-    image: mysql:latest
+    image: postgres:10.5
     container_name: albums-db
     restart: always
     env_file:
       .env
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
     networks:
       - base-network
     volumes:
-      - ./rest/data/mysql_data:/var/lib/mysql
-      - ./rest/data/sql/0001_create_tables.sql:/docker-entrypoint-initdb.d/0001_create_tables.sql
+      - ./rest/data/postgres_data:/var/lib/postgresql/data
+      - ./rest/data/sql/0001_create_databases.sql:/docker-entrypoint-initdb.d/0001_create_databases.sql
+      - ./rest/data/sql/0005_create_tables.sql:/docker-entrypoint-initdb.d/0005_create_tables.sql
       - ./rest/data/sql/0010_insert_albums.sql:/docker-entrypoint-initdb.d/0010_insert_albums.sql
-      # - ./db/my.cnf:/etc/mysql/my.cnf
 
 networks:
   base-network:
-
-volumes:
-  mysql_data:

@@ -1,4 +1,4 @@
-USE recordings;
+\c recordings;
 
 INSERT INTO albums (title, artist, price) VALUES
 ('Blue Train', 'John Coltrane', 56.99),

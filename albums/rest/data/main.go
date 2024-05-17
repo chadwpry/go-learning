@@ -1,12 +1,13 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"os"
 
-	"github.com/go-sql-driver/mysql"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Album struct {
@@ -16,41 +17,57 @@ type Album struct {
 	Price  float32 `json:"price"`
 }
 
-func Albums() ([]Album, error) {
+func Albums(pgpool *pgxpool.Pool) ([]Album, error) {
 	var albums []Album
 
-	db := fetchDB()
-
-	rows, err := db.Query("SELECT * FROM albums")
+	rows, err := pgpool.Query(context.Background(), "SELECT * FROM albums")
 	if err != nil {
-		return nil, fmt.Errorf("Albums: %v", err)
+		return nil, fmt.Errorf("albums %v", err)
 	}
-
 	defer rows.Close()
 
 	for rows.Next() {
-		var item Album
+		var album Album
 
-		if err := rows.Scan(&item.ID, &item.Title, &item.Artist, &item.Price); err != nil {
-			return nil, fmt.Errorf("Album %v", err)
+		if err := rows.Scan(&album.ID, &album.Title, &album.Artist, &album.Price); err != nil {
+			return nil, fmt.Errorf("albums %v", err)
 		}
 
-		albums = append(albums, item)
+		albums = append(albums, album)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("Album %v", err)
+		return nil, fmt.Errorf("albums %v", err)
 	}
 
 	return albums, nil
 }
 
+func AlbumByID(id string) (Album, error) {
+	var album Album
+
+	dbpool := fetchDB()
+	defer dbpool.Close()
+
+	row := dbpool.QueryRow(context.Background(), "SELECT * FROM albums WHERE id = $1", id)
+	if err := row.Scan(&album.ID, &album.Title, &album.Artist, &album.Price); err != nil {
+		if err == sql.ErrNoRows {
+			return album, fmt.Errorf("albumByID %s: no such album", id)
+		}
+
+		return album, fmt.Errorf("albumByID %s: %v", id, err)
+	}
+
+	return album, nil
+}
+
 func AlbumByArists(name string) ([]Album, error) {
 	var albums []Album
 
-	db := fetchDB()
+	dbpool := fetchDB()
+	defer dbpool.Close()
 
-	rows, err := db.Query("SELECT * FROM albums WHERE artist = ?", name)
+	rows, err := dbpool.Query(context.Background(), "SELECT * FROM albums WHERE artist = ?", name)
 	if err != nil {
 		return nil, fmt.Errorf("albumByArists %q: %v", name, err)
 	}
@@ -74,23 +91,6 @@ func AlbumByArists(name string) ([]Album, error) {
 	return albums, nil
 }
 
-func AlbumByID(id string) (Album, error) {
-	var item Album
-
-	db := fetchDB()
-
-	row := db.QueryRow("SELECT * FROM albums WHERE ID = ?", id)
-	if err := row.Scan(&item.ID, &item.Title, &item.Artist, &item.Price); err != nil {
-		if err == sql.ErrNoRows {
-			return item, fmt.Errorf("albumByID %s: no such album", id)
-		}
-
-		return item, fmt.Errorf("albumByID %s: %v", id, err)
-	}
-
-	return item, nil
-}
-
 // func AddAlbum(db *sql.DB, album Album) (int64, error) {
 // 	result, err := db.Exec("INSERT INTO album (title, artist, price) VALUES (?, ?, ?)", album.Title, album.Artist, album.Price)
 // 	if err != nil {
@@ -105,23 +105,24 @@ func AlbumByID(id string) (Album, error) {
 // 	return id, nil
 // }
 
-func fetchDB() *sql.DB {
-	config := mysql.Config{
-		User:                 os.Getenv("DBUSER"),
-		Passwd:               os.Getenv("DBPASS"),
-		Net:                  "tcp",
-		Addr:                 fmt.Sprintf("%s:%s", os.Getenv("DBHOST"), os.Getenv("DBPORT")),
-		DBName:               os.Getenv("DBDATABASE"),
-		AllowNativePasswords: true,
+func fetchDB() *pgxpool.Pool {
+	dbpool, err := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Fatalf("error create pgxpool %v", err)
 	}
 
-	var err error
-	db, err := sql.Open("mysql", config.FormatDSN())
+	connection, err := dbpool.Acquire(context.Background())
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error acquiring a connection %v", err)
+	}
+	defer connection.Release()
+
+	err = connection.Ping(context.Background())
+	if err != nil {
+		log.Fatalf("error pinging connaction %v", err)
 	}
 
 	fmt.Println("Connected")
 
-	return db
+	return dbpool
 }

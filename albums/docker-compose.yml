@@ -3,6 +3,7 @@ version: '3.8'
 services:
   web:
     image: web-service-gin
+    container_name: albums-web
     env_file:
       .env
     ports:
@@ -12,13 +13,14 @@ services:
 
   db:
     image: mysql:latest
+    container_name: albums-db
     restart: always
     env_file:
       .env
     networks:
       - base-network
     volumes:
-      - mysql_data:/var/lib/mysql
+      - ./rest/data/mysql_data:/var/lib/mysql
       - ./rest/data/sql/0001_create_tables.sql:/docker-entrypoint-initdb.d/0001_create_tables.sql
       - ./rest/data/sql/0010_insert_albums.sql:/docker-entrypoint-initdb.d/0010_insert_albums.sql
       # - ./db/my.cnf:/etc/mysql/my.cnf

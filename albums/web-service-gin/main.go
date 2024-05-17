@@ -4,18 +4,18 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 type Album struct {
-	ID     string  `json:"id"     gorm:"primaryKey"`
-	Title  string  `json:"title"`
-	Artist string  `json:"artist"`
-	Price  float32 `json:"price"`
+	ID     string   `json:"id"     gorm:"primaryKey"`
+	Title  string   `json:"title"`
+	Artist string   `json:"artist"`
+	Price  *float32 `json:"price"`
 }
 
 type GinAppConfig struct {
@@ -70,20 +70,19 @@ func (ac *GinAppConfig) show(c *gin.Context) {
 }
 
 func (ac *GinAppConfig) create(c *gin.Context) {
-	value, err := strconv.ParseFloat(c.Param("price"), 32)
-	if err != nil {
+	var album Album
+
+	if err := c.BindJSON(&album); err != nil {
 		c.IndentedJSON(http.StatusBadRequest, err)
+		log.Fatalf("failed to bind values to album %v", err)
 		return
 	}
 
-	album := Album{
-		Title:  c.Param("title"),
-		Artist: c.Param("artist"),
-		Price:  float32(value),
-	}
+	album.ID = uuid.New().String()
 
 	if result := ac.db.Create(&album); result.Error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, result.Error)
+		log.Fatalf("failed to create %v", result.Error)
 		return
 	}
 

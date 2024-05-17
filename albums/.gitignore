@@ -3,7 +3,7 @@
 # binaries
 web-service-gin/web-service-gin
 
-# database directory
-rest/data/mysql_data/*
+data/mysql_data
+data/postgres_data
 
 !**/.gitkeep

@@ -1,0 +1,3 @@
+DROP DATABASE IF EXISTS recordings;
+
+CREATE DATABASE recordings;

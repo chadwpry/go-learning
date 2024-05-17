@@ -5,4 +5,3 @@ INSERT INTO albums (title, artist, price) VALUES
 ('Giant Steps', 'John Coltrane', 63.99),
 ('Jeru', 'Gerry Mulligan', 17.99),
 ('Sarah Vaughan', 'Sarah Vaughan', 34.98);
-

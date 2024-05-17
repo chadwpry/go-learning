@@ -3,7 +3,6 @@ FROM golang:1.22-alpine3.19 AS build
 WORKDIR /app
 
 COPY web-service-gin ./web-service-gin
-COPY rest ./rest
 COPY go.work .
 COPY go.work.sum .
 
